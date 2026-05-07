@@ -1,4 +1,4 @@
-# Navi
+# EV_Navigation
 
 전기차 전용 네비게이션 개발
 
