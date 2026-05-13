@@ -1,0 +1,7 @@
+DB URL = "jdbc:mysql://localhost:3306/ev_navigation?useSSL=false&serverTimezone=Asia/Seoul";
+DB USER = "root";
+DB PASS = "tlaehqls0727";
+
+
+Driver = "com.mysql.cj.jdbc.Driver"
+      
