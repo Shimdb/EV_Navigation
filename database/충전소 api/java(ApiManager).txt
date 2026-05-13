@@ -1,0 +1,107 @@
+package com.evnav.api;
+
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.net.URLEncoder;
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+
+import com.evnav.dto.ChargingStation;
+
+public class ApiManager {
+    private static final String SERVICE_KEY = "인증키"; 
+
+    public List<ChargingStation> fetchStationsData() {
+        List<ChargingStation> list = new ArrayList<>();
+        int pageNo = 1; 
+        int totalCount = 0;
+        
+        System.out.println("전국 충전소 데이터 수집을 시작합니다.");
+
+        while (true) {
+            try {
+                StringBuilder urlBuilder = new StringBuilder("http://apis.data.go.kr/B552584/EvCharger/getChargerInfo");
+                urlBuilder.append("?" + URLEncoder.encode("serviceKey", "UTF-8") + "=" + SERVICE_KEY);
+                urlBuilder.append("&" + URLEncoder.encode("pageNo", "UTF-8") + "=" + pageNo);
+                urlBuilder.append("&" + URLEncoder.encode("numOfRows", "UTF-8") + "=" + URLEncoder.encode("9999", "UTF-8"));
+                
+                URL url = new URL(urlBuilder.toString());
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("GET");
+                
+                Thread.sleep(500);
+
+                DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+                DocumentBuilder builder = factory.newDocumentBuilder();
+                
+                InputStream inputStream = conn.getInputStream();
+                Document document = builder.parse(inputStream);
+                document.getDocumentElement().normalize();
+
+                NodeList nList = document.getElementsByTagName("item");
+                int currentItemCount = nList.getLength();
+
+                if (currentItemCount == 0) {
+                    System.out.println("모든 데이터를 성공적으로 가져왔습니다! (마지막 페이지: " + (pageNo - 1) + ")");
+                    break; 
+                }
+
+                for (int temp = 0; temp < currentItemCount; temp++) {
+                    Node nNode = nList.item(temp);
+
+                    if (nNode.getNodeType() == Node.ELEMENT_NODE) {
+                        Element eElement = (Element) nNode;
+
+                        ChargingStation station = new ChargingStation();
+                        
+                        station.setStationId(getTagValue("statId", eElement));
+                        station.setName(getTagValue("statNm", eElement));
+                        
+                        String latStr = getTagValue("lat", eElement);
+                        String lngStr = getTagValue("lng", eElement);
+                        station.setLat(latStr.isEmpty() ? 0.0 : Double.parseDouble(latStr));
+                        station.setLng(lngStr.isEmpty() ? 0.0 : Double.parseDouble(lngStr));
+                        
+                        station.setAddress(getTagValue("addr", eElement));
+                        station.setOperatorId(getTagValue("busiId", eElement));
+                        
+                        list.add(station);
+                    }
+                }
+                
+                totalCount += currentItemCount;
+                System.out.println(pageNo + "페이지 수집 완료... 누적 데이터: " + totalCount + "개");
+                
+                conn.disconnect();
+                pageNo++; 
+
+            } catch (Exception e) {
+                System.err.println(pageNo + "페이지 데이터를 가져오는 중 오류가 발생했습니다.");
+                e.printStackTrace();
+                break; 
+            }
+        }
+        
+        return list;
+    }
+
+    private String getTagValue(String tag, Element eElement) {
+        NodeList nlList = eElement.getElementsByTagName(tag);
+        if (nlList != null && nlList.getLength() > 0) {
+            Node nValue = (Node) nlList.item(0).getChildNodes().item(0);
+            if (nValue != null) {
+                return nValue.getNodeValue();
+            }
+        }
+        return "";
+    }
+}

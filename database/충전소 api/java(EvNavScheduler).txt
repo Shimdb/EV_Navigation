@@ -1,0 +1,68 @@
+package com.evnav.util;
+
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
+import jakarta.servlet.ServletContextEvent;
+import jakarta.servlet.ServletContextListener;
+import jakarta.servlet.annotation.WebListener;
+
+import com.evnav.api.ApiManager;
+import com.evnav.dao.ChargingStationDAO;
+import com.evnav.dto.ChargingStation;
+
+@WebListener
+public class EvNavScheduler implements ServletContextListener {
+    
+    private ScheduledExecutorService scheduler;
+
+    @Override
+    public void contextInitialized(ServletContextEvent sce) {
+        scheduler = Executors.newSingleThreadScheduledExecutor();
+
+        ZoneId seoulZone = ZoneId.of("Asia/Seoul");
+        LocalDateTime now = LocalDateTime.now(seoulZone);
+        LocalDateTime nextRun = now.withHour(3).withMinute(0).withSecond(0).withNano(0);
+        
+        if (now.isAfter(nextRun)) {
+            nextRun = nextRun.plusDays(1);
+        }
+
+        long initialDelay = Duration.between(now, nextRun).getSeconds();
+        long period = 24 * 60 * 60;
+
+        scheduler.scheduleAtFixedRate(() -> {
+            try {
+                System.out.println("[새벽 3시] EV NAV 충전소 데이터 자동 갱신 시작...");
+                
+                ApiManager apiManager = new ApiManager();
+                List<ChargingStation> stations = apiManager.fetchStationsData();
+                
+                if (!stations.isEmpty()) {
+                    ChargingStationDAO dao = new ChargingStationDAO();
+                    dao.insertStationsBatch(stations);
+                    System.out.println("데이터베이스 갱신 완료! (총 " + stations.size() + "건)");
+                }
+            } catch (Exception e) {
+                System.err.println("스케줄러 실행 중 오류 발생");
+                e.printStackTrace();
+            }
+        }, initialDelay, period, TimeUnit.SECONDS); // 초기 지연시간 후, 24시간마다 실행
+        
+        System.out.println("EV NAV 백그라운드 스케줄러 가동!");
+        System.out.println("▶ 다음 업데이트까지 약 " + (initialDelay / 3600) + "시간 " + ((initialDelay % 3600) / 60) + "분 남았습니다.");
+    }
+
+    @Override
+    public void contextDestroyed(ServletContextEvent sce) {
+        if (scheduler != null) {
+            scheduler.shutdownNow();
+            System.out.println("EV NAV 백그라운드 스케줄러 종료.");
+        }
+    }
+}

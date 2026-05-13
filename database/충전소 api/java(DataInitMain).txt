@@ -1,0 +1,25 @@
+package com.evnav.main;
+
+import java.util.List;
+import com.evnav.api.ApiManager;
+import com.evnav.dao.ChargingStationDAO;
+import com.evnav.dto.ChargingStation;
+
+public class DataInitMain {
+    public static void main(String[] args) {
+        System.out.println("충전소 데이터 수집 시작...");
+
+        ApiManager apiManager = new ApiManager();
+        List<ChargingStation> stations = apiManager.fetchStationsData();
+        
+        System.out.println("가져온 데이터 개수: " + stations.size() + "개");
+
+        if (!stations.isEmpty()) {
+            ChargingStationDAO dao = new ChargingStationDAO();
+            dao.insertStationsBatch(stations);
+            System.out.println("데이터베이스 저장 완료!");
+        } else {
+            System.out.println("저장할 데이터가 없습니다.");
+        }
+    }
+}

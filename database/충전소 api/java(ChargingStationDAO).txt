@@ -1,0 +1,75 @@
+package com.evnav.dao;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.util.List;
+
+import com.evnav.dto.ChargingStation;
+import com.evnav.util.DBUtil;
+
+public class ChargingStationDAO {
+
+    public void insertStationsBatch(List<ChargingStation> stationList) {
+        String sql = "INSERT INTO chargingstation (station_id, name, lat, lng, address, operator_id, location) " +
+                     "VALUES (?, ?, ?, ?, ?, ?, ST_GeomFromText(?, 4326)) " +
+                     "ON DUPLICATE KEY UPDATE " +
+                     "name = VALUES(name), lat = VALUES(lat), lng = VALUES(lng), " +
+                     "address = VALUES(address), operator_id = VALUES(operator_id), location = VALUES(location)";
+
+        Connection conn = null;
+        PreparedStatement pstmt = null;
+
+        try {
+            conn = DBUtil.getConnection(); 
+            
+            conn.setAutoCommit(false); 
+            pstmt = conn.prepareStatement(sql);
+
+            int batchSize = 1000; // 1000건씩 묶어서 실행
+            int count = 0;
+
+            for (ChargingStation station : stationList) {
+                pstmt.setString(1, station.getStationId());
+                pstmt.setString(2, station.getName());
+                pstmt.setDouble(3, station.getLat());
+                pstmt.setDouble(4, station.getLng());
+                pstmt.setString(5, station.getAddress());
+                pstmt.setString(6, station.getOperatorId());
+
+                String pointStr = String.format("POINT(%f %f)", station.getLat(), station.getLng());
+                pstmt.setString(7, pointStr);
+
+                pstmt.addBatch(); 
+                count++;
+
+                if (count % batchSize == 0) {
+                    pstmt.executeBatch();
+                    conn.commit(); 
+                    pstmt.clearBatch(); 
+                }
+            }
+
+            pstmt.executeBatch();
+            conn.commit();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            try {
+                if (conn != null) conn.rollback();
+            } catch (SQLException ex) {
+                ex.printStackTrace();
+            }
+        } finally {
+            try {
+                if (conn != null) {
+                    conn.setAutoCommit(true);
+                    conn.close();
+                }
+                if (pstmt != null) pstmt.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+}

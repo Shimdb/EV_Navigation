@@ -1,0 +1,46 @@
+package com.evnav.dto;
+
+public class ChargingStation {
+    private String stationId;
+    private String name;
+    private double lat;
+    private double lng;
+    private String address;
+    private String operatorId;
+	public String getStationId() {
+		return stationId;
+	}
+	public void setStationId(String stationId) {
+		this.stationId = stationId;
+	}
+	public String getName() {
+		return name;
+	}
+	public void setName(String name) {
+		this.name = name;
+	}
+	public double getLat() {
+		return lat;
+	}
+	public void setLat(double lat) {
+		this.lat = lat;
+	}
+	public double getLng() {
+		return lng;
+	}
+	public void setLng(double lng) {
+		this.lng = lng;
+	}
+	public String getAddress() {
+		return address;
+	}
+	public void setAddress(String address) {
+		this.address = address;
+	}
+	public String getOperatorId() {
+		return operatorId;
+	}
+	public void setOperatorId(String operatorId) {
+		this.operatorId = operatorId;
+	}
+}
