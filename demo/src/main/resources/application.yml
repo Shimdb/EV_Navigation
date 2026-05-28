@@ -1,0 +1,10 @@
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/ev_navigation?rewriteBatchedStatements=true&characterEncoding=UTF-8&serverTimezone=Asia/Seoul
+    username: root
+    password: tlaehqls0727
+
+    api:
+      base-url: http://apis.data.go.kr/B552584/EvCharger/getChargerInfo
+      service-key: ccf86abf48f0decbfd5f0c0eb14764a6fd981bbb4a3ebc71ff33c74bbe50fcd5
