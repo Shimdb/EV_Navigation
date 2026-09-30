@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+        android:id="@+id/home"
+        android:title="홈"
+        android:icon="@android:drawable/ic_menu_mapmode"/>
+
+    <item
+        android:id="@+id/favorite"
+        android:title="즐겨찾기"
+        android:icon="@android:drawable/star_big_on"/>
+
+</menu>
