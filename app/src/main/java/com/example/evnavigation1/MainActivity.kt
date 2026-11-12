@@ -39,6 +39,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.clickable
 
+
 // 전기차 충전소 데이터 모델
 data class EVStation(
     val id: String,
@@ -204,23 +205,6 @@ fun MainMapScreen(navController: NavController) {
                             zoomLevel = 14
                         }
 
-                        // 충전소 마커 추가
-                        stationList.forEach { station ->
-                            val marker = TMapMarkerItem().apply {
-                                id = station.id
-                                tMapPoint = TMapPoint(station.lat, station.lon)
-                                name = station.statNm
-                                // 💡 TMAP 기본 검은색 말풍선 팝업 비활성화
-                                setCanShowCallout(false)
-
-                                // 마커 터치 시 Compose 바텀시트용 상태 변경
-                                setOnClickListener {
-                                    selectedStation = station
-                                    true
-                                }
-                            }
-                            addTMapMarkerItem(marker)
-                        }
                     }
                     tMapViewInstance = this
                 }
@@ -745,140 +729,7 @@ fun MainMapScreen(navController: NavController) {
         }
     }
 
-    @Composable
-    fun RouteSearchScreen(navController: NavController) {
-        var searchQuery by remember { mutableStateOf("") }
-        var searchResults by remember { mutableStateOf<List<PoiItem>>(emptyList()) }
-        val coroutineScope = rememberCoroutineScope()
-        val context = LocalContext.current
 
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.White)
-                .padding(16.dp)
-        ) {
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                IconButton(onClick = { navController.popBackStack() }) {
-                    Text("⬅️", fontSize = 20.sp)
-                }
-                Text(
-                    text = "목적지 검색",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(start = 8.dp)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = { searchQuery = it },
-                modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("충전소 또는 목적지 검색 (예: 대전역)") },
-                shape = RoundedCornerShape(12.dp),
-                singleLine = true,
-                trailingIcon = {
-                    Button(
-                        onClick = {
-                            if (searchQuery.isNotBlank()) {
-                                coroutineScope.launch {
-                                    try {
-                                        val encodedKeyword =
-                                            java.net.URLEncoder.encode(searchQuery, "UTF-8")
-                                        val response =
-                                            RetrofitClient.instance.searchPoi(keyword = encodedKeyword)
-                                        searchResults =
-                                            response.searchPoiInfo?.pois?.poi ?: emptyList()
-
-                                        if (searchResults.isEmpty()) {
-                                            Toast.makeText(
-                                                context,
-                                                "검색 결과가 없습니다.",
-                                                Toast.LENGTH_SHORT
-                                            ).show()
-                                        }
-                                    } catch (e: Exception) {
-                                        e.printStackTrace()
-                                        Toast.makeText(
-                                            context,
-                                            "검색 중 오류가 발생했습니다.",
-                                            Toast.LENGTH_SHORT
-                                        ).show()
-                                    }
-                                }
-                            }
-                        },
-                        modifier = Modifier.padding(end = 8.dp)
-                    ) {
-                        Text("검색")
-                    }
-                }
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            LazyColumn(modifier = Modifier.fillMaxSize()) {
-                items(searchResults) { poi ->
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 4.dp),
-                        shape = RoundedCornerShape(8.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFFF8F9FA)),
-                        onClick = {
-                            var lat = poi.frontLat.toDoubleOrNull() ?: 36.335973
-                            var lon = poi.frontLon.toDoubleOrNull() ?: 127.457652
-
-                            if (lat > 1000) lat /= 1000000.0
-                            if (lon > 1000) lon /= 1000000.0
-
-                            if (lat > lon) {
-                                val temp = lat
-                                lat = lon
-                                lon = temp
-                            }
-
-                            navController.previousBackStackEntry?.savedStateHandle?.set(
-                                "selected_lat",
-                                lat
-                            )
-                            navController.previousBackStackEntry?.savedStateHandle?.set(
-                                "selected_lon",
-                                lon
-                            )
-                            navController.previousBackStackEntry?.savedStateHandle?.set(
-                                "selected_name",
-                                poi.name
-                            )
-
-                            navController.popBackStack()
-                        }
-                    ) {
-                        Column(modifier = Modifier.padding(14.dp)) {
-                            Text(
-                                text = poi.name,
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = "${poi.lowerAddrName} ${poi.detailAddrName}",
-                                fontSize = 12.sp,
-                                color = Color.Gray
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
 
     // 대전대학교 주변 샘플 충전소 마커 추가 함수
     fun addSampleMarkers(tMap: TMapView) {

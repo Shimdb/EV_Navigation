@@ -48,19 +48,4 @@ data class PoiSearchResponse(
     val searchPoiInfo: SearchPoiInfo?
 )
 
-data class SearchPoiInfo(
-    val pois: Pois?
-)
 
-data class Pois(
-    val poi: List<PoiItem>?
-)
-
-data class PoiItem(
-    val id: String,
-    val name: String,
-    val lowerAddrName: String,
-    val detailAddrName: String,
-    val frontLat: String,
-    val frontLon: String
-)
