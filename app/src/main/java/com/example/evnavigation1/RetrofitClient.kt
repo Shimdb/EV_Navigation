@@ -20,6 +20,7 @@ interface TMapApiService {
 
 object RetrofitClient {
     private const val BASE_URL = "https://apis.openapi.sk.com/"
+    private const val BACKEND_BASE_URL = "http://10.0.2.2:5269/"
 
     val instance: TMapApiService by lazy {
         Retrofit.Builder()
@@ -27,5 +28,13 @@ object RetrofitClient {
             .addConverterFactory(GsonConverterFactory.create())
             .build()
             .create(TMapApiService::class.java)
+    }
+
+    val backend: ApiService by lazy {
+        Retrofit.Builder()
+            .baseUrl(BACKEND_BASE_URL)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create(ApiService::class.java)
     }
 }
