@@ -20,6 +20,7 @@ interface TMapApiService {
 
 object RetrofitClient {
     private const val BASE_URL = "https://apis.openapi.sk.com/"
+    //서버환경에 따라 포트번호 변경필요(현재 : 5269)
     private const val BACKEND_BASE_URL = "http://10.0.2.2:5269/"
 
     val instance: TMapApiService by lazy {
