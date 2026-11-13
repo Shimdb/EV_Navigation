@@ -82,6 +82,7 @@ fun LoginScreen(navController: NavController) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
 
     Column(
         modifier = Modifier
@@ -125,9 +126,20 @@ fun LoginScreen(navController: NavController) {
 
         Button(
             onClick = {
-                Toast.makeText(context, "로그인 성공!", Toast.LENGTH_SHORT).show()
-                navController.navigate("mainMap") {
-                    popUpTo("login") { inclusive = true }
+                coroutineScope.launch {
+                    try {
+                        val response = RetrofitClient.backend.login()
+                        if (response.isSuccessful) {
+                            Toast.makeText(context, "로그인 성공! (서버 인증 완료)", Toast.LENGTH_SHORT).show()
+                            navController.navigate("mainMap") {
+                                popUpTo("login") { inclusive = true }
+                            }
+                        } else {
+                            Toast.makeText(context, "서버 응답 오류: ${response.code()}", Toast.LENGTH_SHORT).show()
+                        }
+                    } catch (e: Exception) {
+                        Toast.makeText(context, "서버 연결 실패: 백엔드 서버를 켜주세요.", Toast.LENGTH_LONG).show()
+                    }
                 }
             },
             shape = RoundedCornerShape(8.dp),
@@ -161,15 +173,49 @@ fun MainMapScreen(navController: NavController) {
 
     var selectedStation by remember { mutableStateOf<EVStation?>(null) }
 
-    // 더미 충전소 목록
-    val stationList = remember {
-        listOf(
-            EVStation("st_1", "대전대학교 혜화관 충전소", "대전 동구 대학로 62", 36.335973, 127.457652, 2, 2, 4, 4),
-            EVStation("st_2", "대전역 동광장 충전소", "대전 동구 정동 1-1", 36.3315, 127.4328, 3, 4, 2, 2),
-            EVStation("st_3", "대전시청 지하주차장 충전소", "대전 서구 둔산로 100", 36.3504, 127.3848, 5, 8, 10, 12),
-            EVStation("st_4", "유성온천역 공영주차장", "대전 유성구 봉명동 570", 36.3537, 127.3415, 1, 2, 3, 4),
-            EVStation("st_5", "대전 복합터미널 충전소", "대전 동구 동서대로 1689", 36.3512, 127.4371, 4, 4, 1, 2)
-        )
+    // 서버 데이터를 담을 동적 상태 바구니 (하드코딩 0개)
+    var stationList by remember { mutableStateOf<List<EVStation>>(emptyList()) }
+
+    // 화면 시작 시 대전대 좌표를 우리 백엔드로 보내 충전소 실시간 수신
+    LaunchedEffect(Unit) {
+        try {
+            val response = RetrofitClient.backend.getStations(lat = daejeonUnivLat, lng = daejeonUnivLon)
+            stationList = response.mapIndexed { idx, item ->
+                EVStation(
+                    id = "station_$idx",
+                    statNm = item.name,
+                    addr = item.address,
+                    lat = item.lat,
+                    lon = item.lng,
+                    fastAvailable = if (item.available) 2 else 0,
+                    fastTotal = 4,
+                    slowAvailable = if (item.available) 4 else 0,
+                    slowTotal = 6,
+                    chgerType = if (item.available) "급속 가능" else "사용 불가"
+                )
+            }
+            Toast.makeText(context, "서버에서 주변 충전소 정보를 불러왔습니다.", Toast.LENGTH_SHORT).show()
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Toast.makeText(context, "서버 연결 실패: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    // 서버에서 데이터가 도착하면 TMAP 지도에 마커 등록
+    LaunchedEffect(stationList, tMapViewInstance) {
+        val tMap = tMapViewInstance ?: return@LaunchedEffect
+        if (stationList.isNotEmpty()) {
+            tMap.post {
+                stationList.forEach { station ->
+                    val marker = TMapMarkerItem().apply {
+                        id = station.id
+                        tMapPoint = TMapPoint(station.lat, station.lon)
+                        name = station.statNm
+                    }
+                    tMap.addTMapMarkerItem(marker)
+                }
+            }
+        }
     }
 
     val savedStateHandle = navController.currentBackStackEntry?.savedStateHandle
